@@ -59,4 +59,11 @@ class ProductItem extends Model
         return $this->belongsTo(ProductCategory::class);
     }
 
+    /**
+    * @return HasMany<StockInItem, $this>
+    */
+    public function stockInItems(): HasMany
+    {
+        return $this->hasMany(StockInItem::class);
+    }
 }

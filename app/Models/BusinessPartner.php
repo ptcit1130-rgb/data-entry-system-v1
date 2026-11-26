@@ -78,4 +78,12 @@ class BusinessPartner extends Model
     {
         return $this->hasMany(DistributorSpecialist::class, 'specialist_id');
     }
+
+    /**
+     * @return HasMany<StockOut, $this>
+     */
+    public function stockOuts(): HasMany
+    {
+        return $this->hasMany(StockOut::class);
+    }
 }

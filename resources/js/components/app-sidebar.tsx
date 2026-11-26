@@ -8,7 +8,8 @@ import {
     BriefcaseBusiness,
     UserCog,
     Warehouse,
-    ChartCandlestick
+    ChartCandlestick,
+    ReceiptTextIcon
 } from "lucide-react";
 import AppLogo from "@/components/app-logo";
 import { NavFooter } from "@/components/nav-footer";
@@ -31,6 +32,7 @@ import { index as specialistIndex } from "@/routes/specialists";
 import { index as businessPartnerIndex } from "@/routes/business-partners";
 import { index as tenantBranchIndex } from "@/routes/tenant-branches";
 import { index as stockInIndex } from "@/routes/stock-ins";
+import { index as stockOutIndex} from "@/routes/stock-outs";
 
 const mainNavItems: NavItem[] = [
     {
@@ -64,9 +66,14 @@ const mainNavItems: NavItem[] = [
         icon: BriefcaseBusiness,
     },
     {
-        title: "Stock in",
+        title: "Stock In",
         href: stockInIndex(),
         icon: ChartCandlestick,
+    },
+    {
+        title: "Stock Out",
+        href: stockOutIndex(),
+        icon: ReceiptTextIcon,
     },
 ];
 

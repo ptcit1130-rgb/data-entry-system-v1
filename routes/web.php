@@ -10,6 +10,8 @@ use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductItemController;
 use App\Http\Controllers\StockInController;
 use App\Http\Controllers\StockInItemController;
+use App\Http\Controllers\StockOutController;
+use App\Http\Controllers\StockOutItemController;
 use App\Http\Controllers\TenantBranchController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,6 +47,11 @@ Route::middleware(['auth', 'verified'])->group(function() {
     Route::delete('stock-in-items/{stock_in_item}/racks', 
         [StockInItemController::class, 'removeRack']
     )->name('stock-in-items.racks.destroy');
+
+    Route::resource('stock-outs', StockOutController::class)
+        ->except(['create', 'edit']);
+    Route::resource('stock-out-items', StockOutItemController::class)
+        ->except(['create', 'edit']);
 });
 
 require __DIR__.'/settings.php';

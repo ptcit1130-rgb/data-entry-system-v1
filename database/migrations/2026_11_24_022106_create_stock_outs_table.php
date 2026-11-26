@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\StockOutStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -16,20 +17,17 @@ return new class extends Migration
             $table->uuid()->unique();
 
             $table->string('widrawal_slip_number');
-            $table->string('delivery_slip_umber');
+            $table->string('delivery_slip_number');
             $table->string('return_slip_number');
-            $table->date('date_release');
-            
-            $table->foreignId('business_partner_id')
-                ->constrained()
-                ->cascadeOnDelete();
-
             $table->string('transaction_type_out');
-            $table->date('manufacture_date');
-            $table->date('expiration_date');
-            $table->string('remarks');
-            $table->string('racking');  
-
+            $table->date('date_released');
+            $table->foreignId('branch_location_id')
+                ->constrained('branch_locations')
+                ->cascadeOnDelete();
+            $table->string('status')
+                ->default(StockOutStatus::Active->value)
+                ->index();
+            
             $table->timestamps();
         });
     }

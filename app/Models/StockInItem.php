@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Enums\StockInItemStatus;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'stock_in_id',
@@ -43,7 +44,7 @@ class StockInItem extends Model
         return ['uuid'];
     }
     
-     /**
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -82,5 +83,4 @@ class StockInItem extends Model
     {
         return $this->belongsTo(User::class);
     }
-    
 }

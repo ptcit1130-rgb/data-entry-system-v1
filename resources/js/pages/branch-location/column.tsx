@@ -71,7 +71,7 @@ export const columns = ({onEdit, onView, onDelete}: columnProps) => columnHelper
                 variant="ghost"
                 className="-ml-3"
                 onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-                Contack Number
+                Contact Number
                 <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
         ),

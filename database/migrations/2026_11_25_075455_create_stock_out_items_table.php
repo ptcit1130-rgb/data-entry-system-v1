@@ -19,7 +19,11 @@ return new class extends Migration
             $table->foreignId('stock_out_id')
                 ->constrained()
                 ->cascadeOnDelete();
-            
+                
+            $table->foreignId('stock_in_item_id')
+                ->constrained()
+                ->cascadeOnDelete();
+
             $table->string('total_boxes');
             $table->json('total_box_distributes')->nullable();
             $table->string('status')

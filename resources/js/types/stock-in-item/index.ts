@@ -22,4 +22,5 @@ export type StockInItem = {
     expiration: string;
     total_box_distributes: RackDistribution[] | null;
     status: "Active" | "Inactive";
+    racking: "Completed" | "Incomplete";
 }

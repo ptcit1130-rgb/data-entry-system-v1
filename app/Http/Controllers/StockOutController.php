@@ -54,6 +54,7 @@ class StockOutController extends Controller
     public function show(StockOut $stockOut)
     {   
         $stockOutItem = StockOutItem::query()
+            ->with('stockInItem.productItem')
             ->where('stock_out_id', $stockOut->id)
             ->latest()
             ->get();
@@ -67,6 +68,8 @@ class StockOutController extends Controller
                     ->flatMap(fn($item) => $item->total_box_distributes ?? []);
                 
                 return [
+                    'id'           => $product->id,
+                    'uuid'         => $product->uuid,
                     'product_code' => $product->product_code,
                     'description'  => $product->description,
                     'full'         => (int) $racks->where('status', RackStatus::Full->value)->sum('boxes'),

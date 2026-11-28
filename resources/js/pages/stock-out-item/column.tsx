@@ -11,18 +11,38 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, MoreHorizontal, PencilIcon, PlusCircleIcon, Trash2Icon } from "lucide-react";
+import {
+    ArrowUpDown,
+    EyeIcon,
+    MoreHorizontal,
+    PencilIcon,
+    PlusCircleIcon,
+    Trash2Icon,
+} from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
+import { formatDate } from "@/lib/format-date";
 
 const columnHelper = createColumnHelper<DataTableFeatures, StockOutItem>();
 
-export const columns = columnHelper.columns([
+type columnProps = {
+    onEdit  : (stockOutItem: StockOutItem) => void;
+    onView  : (stockOutItem: StockOutItem) => void;
+    onDelete: (stockOutItem: StockOutItem) => void;
+}
+
+
+export const columns = ({onEdit, onView, onDelete}: columnProps) => columnHelper.columns([
     columnHelper.display({
         id: "select",
         header: ({ table }) => (
             <Checkbox
-                checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
-                onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                checked={
+                    table.getIsAllPageRowsSelected() ||
+                    (table.getIsSomePageRowsSelected() && "indeterminate")
+                }
+                onCheckedChange={(value) =>
+                    table.toggleAllPageRowsSelected(!!value)
+                }
                 aria-label="Select all"
             />
         ),
@@ -36,10 +56,46 @@ export const columns = columnHelper.columns([
         enableSorting: false,
         enableHiding: false,
     }),
+    columnHelper.accessor((row) => row.stock_in_item?.product_item?.product_code ?? "", {
+        id: "product_code",
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                className="-ml-3"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === "asc")
+                }
+            >
+                Product Code
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        )},
+    ),
+    columnHelper.accessor((row) => row.stock_in_item?.tagging ?? "", {
+        id: "tagging",
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                className="-ml-3"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === "asc")
+                }>
+                Tagging
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ getValue }) => getValue() || "—",
+    }),
     columnHelper.accessor("total_boxes", {
         header: ({ column }) => {
             return (
-                <Button variant="ghost" className="-ml-3" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+                <Button
+                    variant="ghost"
+                    className="-ml-3"
+                    onClick={() =>
+                        column.toggleSorting(column.getIsSorted() === "asc")
+                    }
+                >
                     Total boxes
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
@@ -50,23 +106,48 @@ export const columns = columnHelper.columns([
 
             return (
                 <span className="tabular-nums">
-                    {Number.isFinite(value) ? value.toLocaleString("en-US") : "—"}
+                    {Number.isFinite(value)
+                        ? value.toLocaleString("en-US")
+                        : "—"}
                 </span>
             );
         },
     }),
+    columnHelper.accessor((row) => row.stock_in_item?.expiration ?? "", {
+        id: "expiration",
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                className="-ml-3"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === "asc")
+                }
+            >
+                Expiration
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ getValue }) => (getValue() ? formatDate(getValue()) : "—"),
+    }),
     columnHelper.accessor("status", {
         header: ({ column }) => {
             return (
-                <Button variant="ghost" className="-ml-3" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+                <Button
+                    variant="ghost"
+                    className="-ml-3"
+                    onClick={() =>
+                        column.toggleSorting(column.getIsSorted() === "asc")
+                    }
+                >
                     Status
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
             );
         },
-        cell: ({ row }) => <StatusBadge status={row.original.status}/>,
+        cell: ({ row }) => <StatusBadge status={row.original.status} />,
         /** exact match instead of the default "includesString" */
-        filterFn: (row, columnId, filterValue) => !filterValue || row.getValue(columnId) === filterValue,
+        filterFn: (row, columnId, filterValue) =>
+            !filterValue || row.getValue(columnId) === filterValue,
     }),
     columnHelper.display({
         id: "actions",
@@ -85,12 +166,12 @@ export const columns = columnHelper.columns([
                         <DropdownMenuLabel className="text-muted-foreground">
                             Actions
                         </DropdownMenuLabel>
-                        <DropdownMenuSeparator/>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem>
-                            <PencilIcon/> Edit
+                            <PencilIcon /> Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                            <PlusCircleIcon /> Items
+                        <DropdownMenuItem onClick={() => onView(stockOutItem)}>
+                            <EyeIcon /> View
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                             <Trash2Icon /> Delete

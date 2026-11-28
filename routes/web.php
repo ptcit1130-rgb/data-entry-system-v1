@@ -22,7 +22,7 @@ Route::middleware(['auth', 'verified', 'role:admin|audit|inventory controller'])
         ->name('dashboard');
 });
 
-Route::middleware(['auth', 'verified'])->group(function() {
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('payments', PaymentController::class);
     Route::resource('product-categories', ProductCategoryController::class)
         ->except(['create', 'edit']);
@@ -44,7 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function() {
     Route::resource('stock-in-items', StockInItemController::class)
         ->except(['create', 'edit']);
 
-    Route::delete('stock-in-items/{stock_in_item}/racks', 
+    Route::delete('stock-in-items/{stock_in_item}/racks',
         [StockInItemController::class, 'removeRack']
     )->name('stock-in-items.racks.destroy');
 
@@ -52,6 +52,10 @@ Route::middleware(['auth', 'verified'])->group(function() {
         ->except(['create', 'edit']);
     Route::resource('stock-out-items', StockOutItemController::class)
         ->except(['create', 'edit']);
+
+    Route::get('stock-outs/{stock_out}/pick/{product_item}',
+        [StockOutItemController::class, 'pick']
+    )->name('stock-outs.pick');
 });
 
-require __DIR__.'/settings.php';
+require __DIR__ . '/settings.php';

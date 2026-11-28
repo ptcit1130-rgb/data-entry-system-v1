@@ -8,7 +8,7 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { dashboard } from "@/routes";
 import { StockOutItem } from "@/types/stoct-out-item";
-import { Form, Head } from "@inertiajs/react";
+import { Form, Head, router } from "@inertiajs/react";
 import { PlusCircleIcon, SaveIcon } from "lucide-react";
 import { useState } from "react";
 import { features } from "@/components/data-table/features";
@@ -39,8 +39,9 @@ import {
     SelectValue 
 } from "@/components/ui/select";
 import { ProductItem } from "@/types/product-item";
-import { store } from "@/routes/stock-out-items";
+import { show, store } from "@/routes/stock-out-items";
 import { StockOut } from "@/types/stock-out";
+import { pick } from "@/routes/stock-outs";
 
 type Props = {
     stock_out      : StockOut;
@@ -60,10 +61,24 @@ export default function Page({ stock_out, stoct_out_items, product_items }: Prop
     
     const [selectedCode, setSelectedCode] = useState("");
 
+    const [takeRacks, setTakeRacks] = useState<"Full" | "Partial">("Full");
+
+    const tableColumns = columns({
+        onEdit: (stockOutItem) => {
+            //
+        },
+        onView: (stockOutItem) => {
+            router.visit(show.url(stockOutItem.uuid));
+        },
+        onDelete: (stockOutItem) => {
+            //  
+        }
+    });
+
     const table = useTable({
         features,
         data: stoct_out_items,
-        columns,
+        columns: tableColumns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
         onColumnVisibilityChange: setColumnVisibility,
@@ -75,9 +90,10 @@ export default function Page({ stock_out, stoct_out_items, product_items }: Prop
         product.uuid === selectedCode
     ));
 
-    const full     = selected?.full ?? 0;
-    const partials = selected?.partials ?? 0;
-    const total    = full + partials;
+    const full      = selected?.full ?? 0;
+    const partials  = selected?.partials ?? 0;
+    const total     = full + partials;
+    const available = takeRacks === "Full" ? total : partials;
 
     const stockCard = !selected
         ? { box: "border-dashed bg-muted/30 text-muted-foreground", dot: "bg-muted-foreground/40", label: "No product selected" }
@@ -128,7 +144,7 @@ export default function Page({ stock_out, stoct_out_items, product_items }: Prop
                 </div>
             </div>
 
-            <Dialog open={open} onOpenChange={setOpen}>
+            <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSelectedCode(""); }}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>
@@ -157,7 +173,6 @@ export default function Page({ stock_out, stoct_out_items, product_items }: Prop
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        <InputError message={errors.product_item_id} />
                                     </Field>
 
                                     <Field>
@@ -197,14 +212,39 @@ export default function Page({ stock_out, stoct_out_items, product_items }: Prop
                                             </div>
                                         </div>
                                     </Field>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <Field>
+                                            <Label htmlFor="take_racks" required>Take racks</Label>
+                                            <Select name="take_racks" value={takeRacks} onValueChange={(v) => setTakeRacks(v as "Full" | "Partial")}>
+                                                <SelectTrigger id="take_racks" className="w-full">
+                                                    <SelectValue placeholder="Select take racks" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {["Full", "Partial"].map((item) => (
+                                                        <SelectItem key={item} value={item}>{item}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <InputError message={errors.take_racks} />
+                                        </Field>
 
-                                    {/* <Separator /> */}
+                                        <Field>
+                                            <Label htmlFor="total_boxes" required>Total boxes</Label>
+                                            <Input 
+                                                id="total_boxes" name="total_boxes" 
+                                                type="number" min={1} max={available} 
+                                                disabled={!selected || available === 0} 
+                                            />
+                                        </Field>
+                                    </div>
 
-                                    <Field>
-                                        <Label htmlFor="total_boxes" required>Total boxes</Label>
-                                        <Input id="total_boxes" name="total_boxes" type="number" min={1} max={total} disabled={!selected || total === 0} />
-                                    </Field>
-
+                                    <p className="text-xs text-muted-foreground">
+                                        {takeRacks === "Full"
+                                            ? `Full racks first, then partial racks. Max ${formaterNumber(total)}.`
+                                            : `Partial racks only. Max ${formaterNumber(partials)}.`}
+                                    </p>
+                                    
                                     <Field>
                                         <Label htmlFor="status" required>Status</Label>
                                         <Select name="status">
@@ -223,12 +263,14 @@ export default function Page({ stock_out, stoct_out_items, product_items }: Prop
     
                                 <DialogFooter>
                                     <DialogClose asChild>
-                                        <Button type="button" variant="outline">
-                                            Cancel
-                                        </Button>
+                                        <Button type="button" variant="outline">Cancel</Button>
                                     </DialogClose>
-                                    <Button type="submit" disabled={processing}>
-                                        <SaveIcon /> Save
+                                    <Button
+                                        type="button"
+                                        disabled={!selected || total === 0}
+                                        onClick={() => router.visit(pick.url({ stock_out: stock_out.uuid, product_item: selectedCode }))}
+                                    >
+                                        Continue to racking
                                     </Button>
                                 </DialogFooter>
                             </div>

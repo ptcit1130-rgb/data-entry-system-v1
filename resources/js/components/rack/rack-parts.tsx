@@ -50,11 +50,15 @@ const PANEL_VARS = {
 } as CSSProperties;
 
 export const SlotCell = ({ label, style }: { label: string; style?: CSSProperties }) => {
-    const { byRack, query, onSelect, onRemove, ownRacks, busy, remaining } = useContext(RackContext);
+    const { byRack, released, query, onSelect, onRemove, ownRacks, busy, remaining, pick } = useContext(RackContext);
 
-    const allocation = byRack.get(label);
+    const allocation    = byRack.get(label);
+    const releasedBoxes = released.get(label);
 
-    const canSelect = !allocation && !busy && remaining > 0;
+    const pickable    = !!pick && !!allocation && allocation.product_item_uuid === pick.productUuid;
+    const pickedBoxes = pick?.selected.get(label);
+
+    const canSelect = !pick && !allocation && !busy && remaining > 0;
     const canRemove = ownRacks.has(label);
 
     const dimmed = query !== "" && !(
@@ -69,14 +73,25 @@ export const SlotCell = ({ label, style }: { label: string; style?: CSSPropertie
                 <TooltipTrigger asChild>
                     <button
                         type="button"
-                        aria-disabled={!canSelect}
-                        onClick={() => canSelect && onSelect(label)}
+                        aria-disabled={pick ? !pickable : !canSelect}
+                        onClick={() => {
+                            if (pick) { if (pickable) pick.onToggle(label); return; }
+                            if (canSelect) onSelect(label);
+                        }}
                         className={cn(
                             "flex w-full min-w-0 flex-col overflow-hidden rounded-md border transition-opacity",
-                            !allocation && "border-dashed",
+                            !allocation && !releasedBoxes && "border-dashed",
                             canSelect ? "hover:border-foreground/40" : "cursor-default",
-                            allocation?.status === "Full" && "border-green-500 bg-green-500/10",
-                            allocation?.status === "Partial" && "border-amber-500 bg-amber-500/10",
+                            pick
+                                ? allocation && TIER_CLASS[allocation.tier ?? "far"]
+                                : [
+                                    allocation?.status === "Full" && "border-green-500 bg-green-500/10",
+                                    allocation?.status === "Partial" && "border-amber-500 bg-amber-500/10",
+                                ],
+                            releasedBoxes && "border-blue-500 bg-blue-500/10",
+                            pick && allocation && !pickable && "opacity-30",   // other products: visible, not clickable
+                            pickable && "cursor-pointer hover:brightness-95",
+                            pickedBoxes !== undefined && "ring-2 ring-primary ring-offset-1",
                             dimmed && "opacity-25"
                         )}>
                         <span className="flex h-[var(--label-h)] items-center justify-center bg-muted px-0.5 text-[length:var(--label-fs)] font-medium">
@@ -91,7 +106,14 @@ export const SlotCell = ({ label, style }: { label: string; style?: CSSPropertie
                                     <span className="w-full truncate text-[length:var(--label-fs)] text-muted-foreground">
                                         Tag: {allocation.tagging}
                                     </span>
+                                    <span className="w-full truncate text-[length:var(--label-fs)] text-muted-foreground">
+                                        {allocation.boxes} boxes
+                                    </span>
                                 </>
+                            ) : releasedBoxes ? (
+                                <span className="text-[length:var(--code-fs)] font-semibold text-blue-600">
+                                    Released
+                                </span>
                             ) : (
                                 <span className="text-[length:var(--code-fs)] font-semibold">—</span>
                             )}
@@ -107,6 +129,9 @@ export const SlotCell = ({ label, style }: { label: string; style?: CSSPropertie
                                 <p>Product: {allocation.product_code}</p>
                                 <p>Tag: {allocation.tagging}</p>
                                 <p>Boxes: {allocation.boxes}</p>
+                                {allocation.expiration && (
+                                    <p>Expires: {allocation.expiration} ({allocation.days_left} days)</p>
+                                )}
                             </>
                         ) : (
                             <p>Empty rack</p>
@@ -114,6 +139,12 @@ export const SlotCell = ({ label, style }: { label: string; style?: CSSPropertie
                     </div>
                 </TooltipContent>
             </Tooltip>
+
+            {releasedBoxes && (
+                <span className="pointer-events-none absolute -right-1 -top-1 z-10 rounded-full bg-blue-600 px-1.5 text-[10px] font-semibold text-white">
+                    −{releasedBoxes}
+                </span>
+            )}
 
             {canRemove && (
                 <button
@@ -129,6 +160,12 @@ export const SlotCell = ({ label, style }: { label: string; style?: CSSPropertie
         </div>
     );
 };
+
+const TIER_CLASS = {
+    critical: "border-red-500 bg-red-500/15",
+    mid:      "border-amber-500 bg-amber-500/15",
+    far:      "border-green-500 bg-green-500/15",
+} as const;
 
 type RackRowProps = {
     rows: RackRow[];

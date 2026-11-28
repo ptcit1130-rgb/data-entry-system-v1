@@ -24,6 +24,22 @@ class StockInItem extends Model
 {   
     use HasUuids;
 
+    protected $appends = ['racking'];
+
+
+    /**
+     * Determine whether all stock-in boxes have been allocated to racks.
+     */
+    public function getRackingAttribute(): string
+    {
+        $allocated = collect($this->total_box_distributes ?? [])
+            ->sum('boxes');
+
+        return $allocated >= $this->total_boxes
+            ? 'Completed'
+            : 'Incomplete';
+    }
+    
     /**
      * Get the route key for the model.
      *

@@ -15,18 +15,24 @@ import {
 } from "@/components/ui/dialog";
 import { Package, Tag, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { StockInItem, RackDistribution } from "@/types/stock-in-item";
+import { RackDistribution, StockInItem } from "@/types/stock-in-item";
 import { update } from "@/routes/stock-in-items";
 import { destroy as destroyRack } from "@/routes/stock-in-items/racks";
 import { RackContext } from "@/components/rack/rack-context";
 import { resolveLayout } from "@/pages/available-stock/layouts";
 
+type ReleasedRack = Omit<RackDistribution, "status">;
+
 export default function Page({
     stock_in_items,
     rack_allocations,
+    mode = "stock-in",
+    released_racks = [],
 }: {
     stock_in_items: StockInItem;
     rack_allocations: RackDistribution[];
+    mode?: "stock-in" | "stock-out";
+    released_racks?: ReleasedRack[];
 }) {
     const [query, setQuery] = useState("");
     const [busy, setBusy] = useState(false);
@@ -45,6 +51,12 @@ export default function Page({
         [rack_allocations],
     );
 
+    const released = useMemo(
+        () => new Map(released_racks.map((r) => [r.rack_number, r.boxes])),
+        [released_racks],
+    );
+    const releasedTotal = released_racks.reduce((sum, r) => sum + r.boxes, 0);
+
     const allocated = (stock_in_items.total_box_distributes ?? []).reduce(
         (sum, d) => sum + d.boxes,
         0,
@@ -52,9 +64,19 @@ export default function Page({
     
     const remaining = Number(stock_in_items.total_boxes) - allocated;
 
+    const readOnly = mode === "stock-out";
+
+    const racked = (rack_allocations ?? []).reduce((sum, r) => sum + Number(r.boxes), 0);
+
     const stockMeta = [
         { label: "Stacking:", value: stock_in_items.product_item?.product_category?.stacking, icon: Package },
-        { label: "Total Boxes:", value: stock_in_items.total_boxes, icon: Package },
+        readOnly
+            ? { label: "Released:", value: releasedTotal, icon: Package }
+            : { label: "Total Boxes:", value: stock_in_items.total_boxes, icon: Package },
+        ...(readOnly
+            ? []
+            : [{ label: "Remaining:", value: remaining, icon: Package }]),
+        { label: `On racks (${sku ?? "SKU"}):`, value: racked, icon: Package },
         { label: "Tag:", value: stock_in_items.tagging, icon: Tag },
     ];
 
@@ -85,17 +107,16 @@ export default function Page({
         });
     };
 
-    const ctx = useMemo(() => (
-        {
-            byRack,
-            query: query.trim().toLowerCase(),
-            onSelect: handleSelect,
-            onRemove: (rack: string) => setRemoveTarget(rack),
-            ownRacks,
-            busy,
-            remaining,
-        }), [byRack, query, busy, remaining, ownRacks, stock_in_items.uuid],
-    );
+    const ctx = useMemo(() => ({
+        byRack,
+        released,
+        query: query.trim().toLowerCase(),
+        onSelect: handleSelect,
+        onRemove: (rack: string) => setRemoveTarget(rack),
+        ownRacks: readOnly ? new Set<string>() : ownRacks,
+        busy,
+        remaining: readOnly ? 0 : remaining,
+    }), [byRack, released, query, busy, remaining, ownRacks, readOnly, stock_in_items.uuid]);
 
     const removing = removeTarget ? byRack.get(removeTarget) : undefined;
 
@@ -127,7 +148,7 @@ export default function Page({
                                         <div key={label} className="flex items-center gap-2">
                                             <Icon className="size-4 text-muted-foreground" />
                                             <span className="text-sm text-muted-foreground">{label}</span>
-                                            <span className="text-sm font-semibold tabular-nums">
+                                            <span className={`text-sm font-semibold tabular-nums ${label === "Remaining:" && Number(value) === 0 ? "text-green-600" : ""}`}>
                                                 {value ?? "—"}
                                             </span>
                                         </div>

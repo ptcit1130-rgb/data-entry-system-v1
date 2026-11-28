@@ -26,7 +26,7 @@ import {
     DialogHeader, 
     DialogTitle 
 } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldGroup } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import InputError from "@/components/input-error";
 import { 

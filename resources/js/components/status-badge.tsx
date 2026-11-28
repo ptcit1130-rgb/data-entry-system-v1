@@ -12,6 +12,8 @@ const statusVariants = {
     MAINTENANCE  : "warning",
     READ_ONLY    : "info",
     INACTIVE     : "secondary",
+    INCOMPLETE   : "warning",
+    COMPLETED    : "success",
 } as const;
 
 export function StatusBadge({ status }: { status: string }) {

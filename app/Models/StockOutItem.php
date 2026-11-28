@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 #[Fillable([
     'stock_out_id',
@@ -57,5 +58,28 @@ class StockOutItem extends Model
     public function stockOut(): BelongsTo
     {
         return $this->belongsTo(StockOut::class);
+    }
+
+    /**
+     * @return BelongsTo<StockInItem, $this>
+     */
+    public function stockInItem(): BelongsTo
+    {
+        return $this->belongsTo(StockInItem::class);
+    }
+
+    /**
+     * @return HasOneThrough<ProductItem,StockInItem, $this>
+     */
+    public function productItem(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            ProductItem::class,
+            StockInItem::class,
+            'id',
+            'id',
+            'stock_in_item_id',
+            'product_item_id'
+        );
     }
 }

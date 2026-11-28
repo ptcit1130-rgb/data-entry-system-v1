@@ -6,6 +6,7 @@ use App\Enums\RackStatus;
 use App\Http\Requests\StoreStockInItemRequest;
 use App\Http\Requests\UpdateStockInItemRequest;
 use App\Models\ProductItem;
+use App\Models\StockIn;
 use App\Models\StockInItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -34,6 +35,8 @@ class StockInItemController extends Controller
             'stock_in_id'     => $stockInId,
             'product_item_id' => $productItemId,
         ]);
+
+        $this->syncStockInRemarks($stockInId);
 
         Inertia::flash('toast', [
             'type' => 'success',
@@ -65,14 +68,14 @@ class StockInItemController extends Controller
     {
         return StockInItem::query()
             ->whereNotNull('total_box_distributes')
-            ->whereHas('productItem.productCategory', fn ($q) => $q->whereIn('sku', $this->skusSharing($sku)));
+            ->whereHas('productItem.productCategory', fn($q) => $q->whereIn('sku', $this->skusSharing($sku)));
     }
 
     private function racksOf(string $sku)
     {
         return $this->sameSku($sku)
             ->get(['id', 'total_box_distributes'])
-            ->flatMap(fn ($i) => $i->total_box_distributes)
+            ->flatMap(fn($i) => $i->total_box_distributes)
             ->values();
     }
 
@@ -87,7 +90,7 @@ class StockInItemController extends Controller
 
         return Inertia::render('available-stock/page', [
             'stock_in_items'   => $stockInItem,
-            'rack_allocations' => $this->racksOf($sku),  
+            'rack_allocations' => $this->racksOf($sku),
         ]);
     }
 
@@ -118,7 +121,7 @@ class StockInItemController extends Controller
             $taken = $this->sameSku($category->sku)
                 ->lockForUpdate()
                 ->get(['id', 'total_box_distributes'])
-                ->flatMap(fn ($i) => $i->total_box_distributes)
+                ->flatMap(fn($i) => $i->total_box_distributes)
                 ->contains('rack_number', $rack);
 
             if ($taken) {
@@ -150,6 +153,8 @@ class StockInItemController extends Controller
             ]);
 
             $item->update(['total_box_distributes' => $distributes->all()]);
+
+            $this->syncStockInRemarks($item->stock_in_id);
         });
 
         Inertia::flash('toast', [
@@ -188,15 +193,37 @@ class StockInItemController extends Controller
                 ]);
             }
 
-            $left = $distributes->reject(fn ($d) => $d['rack_number'] === $rack)->values();
+            $left = $distributes->reject(fn($d) => $d['rack_number'] === $rack)->values();
+
 
             $item->update([
                 'total_box_distributes' => $left->isEmpty() ? null : $left->all(),
             ]);
+
+            $this->syncStockInRemarks($item->stock_in_id);
         });
 
-        Inertia::flash('toast', ['type'    => 'success','message' => __('Rack :rack removed.', ['rack' => $rack])]);
+        Inertia::flash('toast', ['type'    => 'success', 'message' => __('Rack :rack removed.', ['rack' => $rack])]);
 
         return back();
+    }
+
+    /**
+     * Update the parent stock-in remarks based on its items' racking status.
+     */
+    private function syncStockInRemarks(int $stockInId): void
+    {
+        $items = StockInItem::where('stock_in_id', $stockInId)
+            ->get(['total_boxes', 'total_box_distributes']);
+
+        $completed = $items->isNotEmpty()
+            && $items->every(
+                fn($item) =>
+                collect($item->total_box_distributes ?? [])->sum('boxes') >= $item->total_boxes
+            );
+
+        StockIn::whereKey($stockInId)->update([
+            'remarks' => $completed ? 'Completed' : 'Incomplete',
+        ]);
     }
 }
